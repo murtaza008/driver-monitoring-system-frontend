@@ -6,12 +6,12 @@ export const getPerformanceLevel = (score, thresholds = { excellent: 90, good: 7
 };
 
 export const defaultNotificationTemplates = {
-  'Drowsiness': 'Alert: Driver {name} detected with drowsiness. Please take a break immediately.',
-  'Yawning': 'Notice: Frequent yawning detected for driver {name}. Consider scheduling a rest stop.',
-  'Distraction': 'Warning: Driver {name} appears distracted. Please focus on the road.',
-  'Mobile Usage': 'Critical: Driver {name} detected using mobile phone while driving. Immediate action required.',
-  'Seatbelt': 'Alert: Driver {name} is not wearing a seatbelt. Please buckle up immediately.',
-  'Smoking': 'Notice: Driver {name} detected smoking in the vehicle. This violates company policy.',
+  'Drowsiness': 'Alert: Driver {name} detected with drowsiness at {time}. Please take a break immediately.',
+  'Yawning': 'Notice: Frequent yawning detected for driver {name} at {time}. Consider scheduling a rest stop.',
+  'Distraction': 'Warning: Driver {name} appears distracted at {time}. Please focus on the road.',
+  'Mobile Usage': 'Critical: Driver {name} detected using mobile phone while driving at {time}. Immediate action required.',
+  'Seatbelt': 'Alert: Driver {name} is not wearing a seatbelt (since {time}). Please buckle up immediately.',
+  'Smoking': 'Notice: Driver {name} detected smoking in the vehicle at {time}. This violates company policy.',
 };
 
 export const severityColor = (severity) => {

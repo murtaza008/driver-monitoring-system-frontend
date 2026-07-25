@@ -113,7 +113,7 @@ const AutomatedNotifications = () => {
                 placeholder={`Message template for ${type}...`}
                 disabled={!anyEnabled}
               />
-              <p className="text-xs text-muted-foreground mt-1">Use {'{name}'} for driver name placeholder</p>
+              <p className="text-xs text-muted-foreground mt-1">Use {'{name}'} for driver name and {'{time}'} for when the violation occurred</p>
             </motion.div>
           );
         })}
