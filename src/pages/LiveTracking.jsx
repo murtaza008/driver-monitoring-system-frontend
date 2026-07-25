@@ -4,7 +4,8 @@ import 'leaflet/dist/leaflet.css';
 import { useQuery } from '@tanstack/react-query';
 import api from '@/lib/api';
 import { db } from '@/lib/firebase';
-import { collection, onSnapshot } from 'firebase/firestore';
+import { collection, onSnapshot, query, where } from 'firebase/firestore';
+import { useAuth } from '@/contexts/AuthContext';
 import { Loader2, Search } from 'lucide-react';
 import LoadingSpinner from '@/components/ui/LoadingSpinner';
 import { Input } from '@/components/ui/input';
@@ -45,6 +46,8 @@ const LiveTracking = () => {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [flyTarget, setFlyTarget] = useState(null);
   const { toast } = useToast();
+  const { companyInfo } = useAuth();
+  const ownerId = companyInfo?.id;
 
   // Fetch driver profiles to enrich the location data
   const { data: drivers = [], isLoading: driversLoading } = useQuery({
@@ -55,9 +58,15 @@ const LiveTracking = () => {
     },
   });
 
-  // Listen to Firestore driver_locations collection
+  // Listen to Firestore driver_locations collection, scoped to this admin's own
+  // fleet — Firestore requires the query to filter on the same field the
+  // security rule checks (resource.data.ownerId), it can't validate an
+  // unfiltered listen against a per-document rule.
   useEffect(() => {
-    const unsubscribe = onSnapshot(collection(db, 'driver_locations'), (snapshot) => {
+    if (!ownerId) return;
+
+    const scoped = query(collection(db, 'driver_locations'), where('ownerId', '==', ownerId));
+    const unsubscribe = onSnapshot(scoped, (snapshot) => {
       const newLocations = {};
       snapshot.forEach(doc => {
         const data = doc.data();
@@ -71,7 +80,7 @@ const LiveTracking = () => {
     });
 
     return () => unsubscribe();
-  }, []);
+  }, [ownerId]);
 
   // Force re-evaluation of staleness every 30 seconds
   const [tick, setTick] = useState(0);
