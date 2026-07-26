@@ -8,27 +8,42 @@ import { Shield, Eye, EyeOff } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useToast } from '@/hooks/use-toast';
 import { parseApiError } from '@/utils/apiErrors';
+import FieldError from '@/components/ui/FieldError';
+import { validateLoginForm } from '@/utils/validation';
 
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPass, setShowPass] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState({});
+  const [submitting, setSubmitting] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    const check = validateLoginForm({ email, password });
+    if (!check.valid) {
+      setFieldErrors(check.errors);
+      toast({ title: 'Please fix the form', description: check.message, variant: 'destructive' });
+      return;
+    }
+
+    setSubmitting(true);
     try {
       await login(email, password);
       navigate('/');
     } catch (error) {
-      const { message, detail } = parseApiError(error);
+      const { message, detail, fieldErrors: apiFields } = parseApiError(error);
+      setFieldErrors(prev => ({ ...prev, ...apiFields }));
       toast({
         title: message || 'Login Failed',
         description: detail || 'Invalid email or password.',
         variant: 'destructive',
       });
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -68,7 +83,8 @@ const Login = () => {
           <form onSubmit={handleSubmit} className="space-y-5">
             <div className="space-y-2">
               <Label htmlFor="email">Company Email</Label>
-              <Input id="email" type="email" placeholder="admin@fleet.com" value={email} onChange={e => setEmail(e.target.value)} required className="bg-muted/50" />
+              <Input id="email" type="email" placeholder="admin@fleet.com" value={email} onChange={e => { setEmail(e.target.value); setFieldErrors(f => ({ ...f, email: undefined })); }} required className="bg-muted/50" />
+              <FieldError message={fieldErrors.email} />
             </div>
             <div className="space-y-2">
               <div className="flex items-center justify-between">
@@ -76,13 +92,14 @@ const Login = () => {
                 <Link to="/forgot-password" className="text-xs text-primary hover:underline">Forgot password?</Link>
               </div>
               <div className="relative">
-                <Input id="password" type={showPass ? 'text' : 'password'} placeholder="••••••••" value={password} onChange={e => setPassword(e.target.value)} required className="bg-muted/50 pr-10" />
+                <Input id="password" type={showPass ? 'text' : 'password'} placeholder="••••••••" value={password} onChange={e => { setPassword(e.target.value); setFieldErrors(f => ({ ...f, password: undefined })); }} required className="bg-muted/50 pr-10" />
                 <button type="button" onClick={() => setShowPass(p => !p)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
                   {showPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
+              <FieldError message={fieldErrors.password} />
             </div>
-            <Button type="submit" className="w-full">Sign In</Button>
+            <Button type="submit" className="w-full" disabled={submitting}>{submitting ? 'Signing in...' : 'Sign In'}</Button>
           </form>
 
           <p className="text-center text-sm text-muted-foreground mt-6">

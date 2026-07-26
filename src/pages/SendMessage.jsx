@@ -11,6 +11,9 @@ import LoadingSpinner from '@/components/ui/LoadingSpinner';
 import DriverAvatar from '@/components/ui/DriverAvatar';
 import { Link, useSearchParams, useNavigate } from 'react-router-dom';
 import api from '@/lib/api';
+import FieldError from '@/components/ui/FieldError';
+
+const MAX_MESSAGE_LENGTH = 1000;
 
 const SendMessage = () => {
   const [searchParams] = useSearchParams();
@@ -19,6 +22,7 @@ const SendMessage = () => {
   const [activeChannels, setActiveChannels] = useState([]);
   const [selectedDriver, setSelectedDriver] = useState('');
   const [message, setMessage] = useState('');
+  const [messageError, setMessageError] = useState('');
   const [loading, setLoading] = useState(true);
   const queryClient = useQueryClient();
 
@@ -75,12 +79,22 @@ const SendMessage = () => {
 
 
   const handleSend = async () => {
-    if (!selectedDriver || !message.trim()) {
-      toast({ title: 'Error', description: 'Please select a driver and write a message.', variant: 'destructive' });
+    const trimmed = message.trim();
+    if (!selectedDriver) {
+      toast({ title: 'Error', description: 'Please select a driver.', variant: 'destructive' });
       return;
     }
+    if (!trimmed) {
+      setMessageError('Message cannot be empty.');
+      return;
+    }
+    if (trimmed.length > MAX_MESSAGE_LENGTH) {
+      setMessageError(`Message is too long (max ${MAX_MESSAGE_LENGTH} characters).`);
+      return;
+    }
+    setMessageError('');
     try {
-      await api.post('/messages', { driverId: selectedDriver, text: message });
+      await api.post('/messages', { driverId: selectedDriver, text: trimmed });
       const driverName = driver?.name || 'Guest Driver';
       toast({ title: 'Message Sent!', description: `Message sent to ${driverName}.` });
       setMessage('');
@@ -216,11 +230,17 @@ const SendMessage = () => {
           <Label>Message</Label>
           <Textarea
             value={message}
-            onChange={e => setMessage(e.target.value)}
+            onChange={e => { setMessage(e.target.value); setMessageError(''); }}
             rows={4}
             className="bg-muted/50 text-sm"
             placeholder="Type your message here..."
           />
+          <div className="flex items-center justify-between">
+            <FieldError message={messageError} />
+            <span className={`text-xs ml-auto ${message.length > MAX_MESSAGE_LENGTH ? 'text-destructive' : 'text-muted-foreground'}`}>
+              {message.length}/{MAX_MESSAGE_LENGTH}
+            </span>
+          </div>
         </div>
 
         <Button onClick={handleSend} className="w-full gap-2 font-semibold">

@@ -11,6 +11,7 @@ import LoadingSpinner from '@/components/ui/LoadingSpinner';
 import { Link } from 'react-router-dom';
 import { defaultNotificationTemplates, severityColor } from '@/utils/driverDisplay';
 import api from '@/lib/api';
+import FieldError from '@/components/ui/FieldError';
 
 const icons = {
   'Drowsiness': Eye, 'Yawning': Brain, 'Distraction': Brain,
@@ -33,6 +34,7 @@ const AutomatedNotifications = () => {
   const [toggles, setToggles] = useState(defaultToggles);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [templateErrors, setTemplateErrors] = useState({});
   const { toast } = useToast();
 
   useEffect(() => {
@@ -55,9 +57,23 @@ const AutomatedNotifications = () => {
       ...prev,
       [type]: { ...prev[type], [severity]: checked },
     }));
+    setTemplateErrors(prev => ({ ...prev, [type]: undefined }));
   };
 
   const handleSave = async () => {
+    const errors = {};
+    violationTypes.forEach(type => {
+      const anyEnabled = toggles[type] ? Object.values(toggles[type]).some(Boolean) : false;
+      if (anyEnabled && !String(templates[type] || '').trim()) {
+        errors[type] = 'Add a message template, or turn off all severities for this violation.';
+      }
+    });
+    setTemplateErrors(errors);
+    if (Object.keys(errors).length) {
+      toast({ title: 'Missing message templates', description: 'Fill in a template for every enabled violation type.', variant: 'destructive' });
+      return;
+    }
+
     setSaving(true);
     try {
       await api.post('/settings/notifications', { templates, toggles });
@@ -107,12 +123,16 @@ const AutomatedNotifications = () => {
 
               <Textarea
                 value={templates[type] || ''}
-                onChange={e => setTemplates(prev => ({ ...prev, [type]: e.target.value }))}
+                onChange={e => {
+                  setTemplates(prev => ({ ...prev, [type]: e.target.value }));
+                  setTemplateErrors(prev => ({ ...prev, [type]: undefined }));
+                }}
                 rows={2}
                 className="bg-muted/50 text-sm"
                 placeholder={`Message template for ${type}...`}
                 disabled={!anyEnabled}
               />
+              <FieldError message={templateErrors[type]} />
               <p className="text-xs text-muted-foreground mt-1">Use {'{name}'} for driver name and {'{time}'} for when the violation occurred</p>
             </motion.div>
           );

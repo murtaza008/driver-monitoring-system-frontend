@@ -10,7 +10,7 @@ import { motion } from 'framer-motion';
 import { useToast } from '@/hooks/use-toast';
 import FieldError from '@/components/ui/FieldError';
 import FieldHint from '@/components/ui/FieldHint';
-import { validateCompanyRegistration } from '@/utils/validation';
+import { validateCompanyRegistration, parseFleetSize } from '@/utils/validation';
 import { parseApiError } from '@/utils/apiErrors';
 
 const Register = () => {
@@ -28,6 +28,10 @@ const Register = () => {
   const update = (key, value) => {
     setForm(f => ({ ...f, [key]: value }));
     setFieldErrors(e => ({ ...e, [key]: undefined }));
+  };
+
+  const handleFleetSizeBlur = () => {
+    update('fleetSize', String(parseFleetSize(form.fleetSize) || 1));
   };
 
   const handleSubmit = async (e) => {
@@ -125,9 +129,19 @@ const Register = () => {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Fleet Size</Label>
-                <Input placeholder="50" value={form.fleetSize} onChange={e => update('fleetSize', e.target.value)} required className="bg-muted/50" />
+                <Input
+                  type="number"
+                  min={1}
+                  step={1}
+                  placeholder="50"
+                  value={form.fleetSize}
+                  onChange={e => update('fleetSize', e.target.value)}
+                  onBlur={handleFleetSizeBlur}
+                  required
+                  className="bg-muted/50"
+                />
                 <FieldError message={fieldErrors.fleetSize} />
-                <FieldHint>Number of drivers you plan to add, at least 1.</FieldHint>
+                <FieldHint>Minimum 1. This is the maximum number of drivers your company will be able to add.</FieldHint>
               </div>
               <div className="space-y-2">
                 <Label>NTN Number</Label>

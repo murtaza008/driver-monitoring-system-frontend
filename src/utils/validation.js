@@ -2,6 +2,10 @@ export function normalizeEmail(email) {
   return String(email || '').trim().toLowerCase();
 }
 
+export function isValidEmail(email) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizeEmail(email));
+}
+
 export function normalizePhone(phone) {
   let digits = String(phone || '').replace(/\D/g, '');
   if (digits.startsWith('92') && digits.length === 12) digits = '0' + digits.slice(2);
@@ -96,16 +100,47 @@ export function validateCompanyRegistration(form) {
   return { valid: Object.keys(errors).length === 0, errors, message: firstError };
 }
 
-export function validateCompanyProfile(form) {
+export function validateCompanyProfile(form, { minFleetSize } = {}) {
   const errors = {};
   const add = (field, message) => { errors[field] = message; };
 
   if (!normalizeName(form.companyName)) add('companyName', 'Company name is required.');
   if (!normalizeName(form.adminName)) add('adminName', 'Admin name is required.');
   if (!isValidPakistanPhone(form.phone)) add('phone', 'Enter a valid Pakistan mobile (11 digits).');
-  if (!parseFleetSize(form.fleetSize)) add('fleetSize', 'Fleet size must be at least 1.');
+
+  const fleetSize = parseFleetSize(form.fleetSize);
+  if (!fleetSize) {
+    add('fleetSize', 'Fleet size must be at least 1.');
+  } else if (Number.isFinite(minFleetSize) && fleetSize < minFleetSize) {
+    add('fleetSize', `Fleet size cannot be less than your current driver count (${minFleetSize}).`);
+  }
+
   if (!normalizeName(form.address)) add('address', 'Address is required.');
   if (!String(form.ntnNumber || '').trim()) add('ntnNumber', 'NTN number is required.');
+
+  const firstError = Object.values(errors)[0] || null;
+  return { valid: Object.keys(errors).length === 0, errors, message: firstError };
+}
+
+export function validateLoginForm(form) {
+  const errors = {};
+  const add = (field, message) => { errors[field] = message; };
+
+  if (!isValidEmail(form.email)) add('email', 'Enter a valid email address.');
+  if (!form.password) add('password', 'Password is required.');
+
+  const firstError = Object.values(errors)[0] || null;
+  return { valid: Object.keys(errors).length === 0, errors, message: firstError };
+}
+
+export function validateForgotPasswordForm(form) {
+  const errors = {};
+  const add = (field, message) => { errors[field] = message; };
+
+  if (!isValidEmail(form.email)) add('email', 'Enter a valid email address.');
+  if (!isValidPakistanPhone(form.phone)) add('phone', 'Enter a valid Pakistan mobile (11 digits, e.g. 03001234567).');
+  if (!form.newPassword || form.newPassword.length < 6) add('newPassword', 'Password must be at least 6 characters.');
+  if (form.newPassword !== form.confirmPassword) add('confirmPassword', 'Passwords do not match.');
 
   const firstError = Object.values(errors)[0] || null;
   return { valid: Object.keys(errors).length === 0, errors, message: firstError };
